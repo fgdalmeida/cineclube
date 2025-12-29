@@ -198,3 +198,4 @@ if senha == ADMIN_PASSWORD:
         if os.path.exists(ARQUIVO):
             os.remove(ARQUIVO)
         st.rerun()
+# test
