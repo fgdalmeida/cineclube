@@ -4,91 +4,84 @@ import random
 import time
 import os
 
-# --- Configuração do Arquivo de Dados ---
-ARQUIVO_DADOS = "lista_filmes.csv"
+# --- Banco de Dados ---
+ARQUIVO = "filmes.csv"
 
-def carregar_dados():
-    if os.path.exists(ARQUIVO_DADOS):
-        return pd.read_csv(ARQUIVO_DADOS).to_dict('records')
+def carregar():
+    if os.path.exists(ARQUIVO):
+        try:
+            return pd.read_csv(ARQUIVO).to_dict('records')
+        except:
+            return []
     return []
 
-def salvar_dados(lista):
-    pd.DataFrame(lista).to_csv(ARQUIVO_DADOS, index=False)
+def salvar(lista):
+    pd.DataFrame(lista).to_csv(ARQUIVO, index=False)
 
-# --- Configuração da Página ---
-st.set_page_config(page_title="Cine Clube - Seletor", page_icon="🎬")
+# --- Configuração ---
+st.set_page_config(page_title="Cine Clube", page_icon="🎬")
 
-# --- Estilização Customizada ---
+if 'movie_list' not in st.session_state:
+    st.session_state.movie_list = carregar()
+
+# --- Estilo ---
 st.markdown("""
     <style>
-    .big-font { font-size:35px !important; font-weight: bold; color: #E50914; }
-    .winner-box { 
-        padding: 25px; 
-        border-radius: 15px; 
-        background-color: #f0f2f6; 
-        text-align: center; 
-        border: 3px solid #E50914;
-        margin-top: 25px;
+    .vencedor { 
+        padding: 20px; border-radius: 10px; border: 3px solid #E50914;
+        background-color: #f0f2f6; text-align: center;
     }
-    .movie-card {
-        padding: 12px;
-        background-color: #ffffff;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        border-left: 5px solid #E50914;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    .filme-card {
+        padding: 10px; background: white; border-radius: 5px;
+        margin-bottom: 5px; border-left: 5px solid #E50914;
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Inicialização do Estado ---
-if 'movie_list' not in st.session_state:
-    st.session_state.movie_list = carregar_data()
+st.title("🎬 Cine Clube")
 
-# --- Título ---
-st.title("🎬 Cine Clube: Roleta de Filmes")
-st.write("Adicione as sugestões e prepare a pipoca!")
-
-# --- Seção de Entrada ---
-with st.container():
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        titulo = st.text_input("Título do Filme", placeholder="Ex: Parasita")
-    with col2:
-        diretor = st.text_input("Diretor(a)", placeholder="Ex: Bong Joon-ho")
-    with col3:
-        quem_indicou = st.text_input("Indicado por", placeholder="Ex: Maria")
-
-    if st.button("Adicionar à Lista ➕"):
-        if titulo and quem_indicou:
-            novo_filme = {
-                "titulo": titulo, 
-                "diretor": diretor if diretor else "Não informado", 
-                "pessoa": quem_indicou
-            }
-            st.session_state.movie_list.append(novo_filme)
-            salvar_dados(st.session_state.movie_list)
-            st.success(f"'{titulo}' adicionado com sucesso!")
-            st.rerun()
-        else:
-            st.warning("Por favor, preencha pelo menos o Título e quem indicou.")
-
-# --- Exibição da Lista Atual ---
-if st.session_state.movie_list:
-    st.divider()
-    st.subheader(f"🍿 Filmes no Balde ({len(st.session_state.movie_list)})")
+# --- Cadastro ---
+with st.expander("➕ Adicionar Novo Filme", expanded=True):
+    c1, c2, c3 = st.columns(3)
+    t = c1.text_input("Título")
+    d = c2.text_input("Diretor")
+    p = c3.text_input("Quem indicou?")
     
-    for i, filme in enumerate(st.session_state.movie_list):
-        st.markdown(f"""
-        <div class="movie-card">
-            <b>{i+1}. {filme['titulo']}</b> <br>
-            <span style="font-size:0.9em; color:gray;">Dir: {filme['diretor']}</span> | 
-            <span style="font-size:0.9em; color:gray;">Sugestão de: <b>{filme['pessoa']}</b></span>
-        </div>
-        """, unsafe_allow_html=True)
+    if st.button("Salvar Filme"):
+        if t and p:
+            novo = {"titulo": t, "diretor": d if d else "N/A", "pessoa": p}
+            st.session_state.movie_list.append(novo)
+            salvar(st.session_state.movie_list)
+            st.rerun()
 
-    st.divider()
+# --- Lista e Sorteio ---
+if st.session_state.movie_list:
+    st.subheader(f"🍿 Filmes na disputa ({len(st.session_state.movie_list)})")
+    
+    for f in st.session_state.movie_list:
+        st.markdown(f"""<div class='filme-card'><b>{f['titulo']}</b> ({f['diretor']})<br>
+        <small>Indicado por: {f['pessoa']}</small></div>""", unsafe_allow_html=True)
 
-    # --- Mecanismo de Sorteio ---
-    if st.button("🎲 SOR
+    if st.button("🎲 SORTEAR AGORA", type="primary", use_container_width=True):
+        progress = st.progress(0)
+        for i in range(100):
+            time.sleep(0.01)
+            progress.progress(i + 1)
+        
+        viciado = random.choice(st.session_state.movie_list)
+        st.balloons()
+        st.markdown(f"""<div class='vencedor'><h2>O escolhido foi...</h2>
+        <h1 style='color: #E50914;'>{viciado['titulo']}</h1>
+        <p>Direção: {viciado['diretor']} | Indicado por: {viciado['pessoa']}</p></div>""", unsafe_allow_html=True)
+else:
+    st.info("A lista está vazia!")
 
+# --- Admin ---
+st.sidebar.title("🔒 Admin")
+senha = st.sidebar.text_input("Senha", type="password")
+if senha == "pipoca":
+    if st.sidebar.button("Limpar Lista"):
+        st.session_state.movie_list = []
+        if os.path.exists(ARQUIVO): os.remove(ARQUIVO)
+        st.rerun()
